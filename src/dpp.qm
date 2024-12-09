@@ -1,0 +1,589 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="5.2.2" links="0">
+ <documentation>This is the Dining Philosopher Problem (DPP) example for the Arduino-UNO board. The example demonstrates:
+
+1. Multiple active objects (5 Philosophers and 1 Table AO)
+2. Two active object classes (Philo and Table inside the package &quot;AOs&quot;)
+2. State machines associated with Philo and Table
+3. The concept of a Board Support Pakage (BSP)</documentation>
+ <framework name="qpn"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="Philo" superclass="qpn::QActive">
+   <attribute name="m_ledPin" type="uint8_t" visibility="0x00" properties="0x00"/>
+   <attribute name="m_pwmEnabled" type="uint8_t" visibility="0x00" properties="0x00"/>
+   <attribute name="m_elapsedTime" type="uint32_t" visibility="0x00" properties="0x00"/>
+   <attribute name="m_id" type="uint8_t" visibility="0x00" properties="0x00"/>
+   <statechart properties="0x01">
+    <initial target="../1">
+     <action>DEBUG_ARGS(&quot;Philospher %d starting&quot;, me-&gt;m_id);</action>
+     <initial_glyph conn="2,3,5,1,20,5,-4">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="thinking">
+     <entry>DEBUG_ARGS(&quot;Philospher %d thinking&quot;, me-&gt;m_id);
+QActive_armX(&amp;me-&gt;super, 0U, THINK_TIME, 0U);</entry>
+     <exit>QActive_disarmX(&amp;me-&gt;super, 0U);</exit>
+     <tran trig="Q_TIMEOUT" target="../../2">
+      <tran_glyph conn="2,14,3,1,20,11,-4">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="EAT, DONE">
+      <action>Q_ERROR(); /* these events should never arrive in this state */</action>
+      <tran_glyph conn="2,17,3,-1,13">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,5,16,16">
+      <entry box="1,2,5,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state name="hungry">
+     <entry>DEBUG_ARGS(&quot;Philospher %d hungry&quot;, me-&gt;m_id);
+QACTIVE_POST(&amp;AO_Table, HUNGRY_SIG, me-&gt;super.prio);</entry>
+     <tran trig="EAT" target="../../3">
+      <tran_glyph conn="2,32,3,1,20,11,-4">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="DONE">
+      <action>Q_ERROR(); /* this event should never arrive in this state */</action>
+      <tran_glyph conn="2,36,3,-1,14">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,23,16,16">
+      <entry box="1,2,5,2"/>
+     </state_glyph>
+    </state>
+    <state name="eating">
+     <entry>DEBUG_ARGS(&quot;Philospher %d eating&quot;, me-&gt;m_id);
+QActive_armX(&amp;me-&gt;super, 0U, EAT_TIME, 0U);</entry>
+     <exit>QActive_disarmX(&amp;me-&gt;super, 0U);
+QACTIVE_POST(QF_ACTIVE_CAST(&amp;AO_Table), DONE_SIG, me-&gt;super.prio);</exit>
+     <tran trig="Q_TIMEOUT" target="../../1">
+      <tran_glyph conn="2,51,3,1,22,-41,-6">
+       <action box="0,-2,10,3"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="EAT, DONE">
+      <action>Q_ERROR(); /* these events should never arrive in this state */</action>
+      <tran_glyph conn="2,55,3,-1,13">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,41,16,18">
+      <entry box="1,2,5,2"/>
+      <exit box="1,4,5,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="28,62"/>
+   </statechart>
+  </class>
+  <class name="Table" superclass="qpn::QActive">
+   <attribute name="fork[N_PHILO]" type="uint8_t" visibility="0x02" properties="0x00"/>
+   <attribute name="isHungry[N_PHILO]" type="uint8_t" visibility="0x02" properties="0x00"/>
+   <statechart properties="0x01">
+    <initial target="../1/1">
+     <action>uint8_t n;
+for (n = 0U; n &lt; N_PHILO; ++n) {
+    me-&gt;fork[n] = FREE;
+    me-&gt;isHungry[n] = 0U;
+    BSP_displayPhilStat(n, THINKING_SIG);
+}</action>
+     <initial_glyph conn="4,4,5,1,42,12,-8">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="active">
+     <tran trig="EAT">
+      <action brief="Q_ERROR">Q_ERROR();</action>
+      <tran_glyph conn="2,11,3,-1,14">
+       <action box="0,-2,14,3"/>
+      </tran_glyph>
+     </tran>
+     <state name="serving">
+      <entry brief="give pending permitions to eat">uint8_t n;
+for (n = 0U; n &lt; N_PHILO; ++n) { /* give permissions to eat... */
+    if ((me-&gt;isHungry[n] != 0U)
+        &amp;&amp; (me-&gt;fork[LEFT(n)] == FREE)
+        &amp;&amp; (me-&gt;fork[n] == FREE))
+    {
+        QMActive *philo;
+
+        me-&gt;fork[LEFT(n)] = USED;
+        me-&gt;fork[n] = USED;
+        philo = QF_ACTIVE_CAST(Q_ROM_PTR(QF_active[PHILO_0_PRIO + n].act));
+        QACTIVE_POST(philo, EAT_SIG, n);
+        me-&gt;isHungry[n] = 0U;
+        BSP_displayPhilStat(n, EAT_SIG);
+    }
+}</entry>
+      <tran trig="HUNGRY">
+       <action>uint8_t n, m;
+
+n = (uint8_t)(Q_PAR(me) - PHILO_0_PRIO);
+/* phil ID must be in range and he must be not hungry */
+Q_ASSERT((n &lt; N_PHILO) &amp;&amp; (me-&gt;isHungry[n] == 0U));
+
+BSP_displayPhilStat(n, HUNGRY_SIG);
+m = LEFT(n);</action>
+       <choice>
+        <guard brief="both free">(me-&gt;fork[m] == FREE) &amp;&amp; (me-&gt;fork[n] == FREE)</guard>
+        <action>me-&gt;fork[m] = USED;
+me-&gt;fork[n] = USED;
+QACTIVE_POST(&amp;AO_Philo[n], EAT_SIG, n);
+BSP_displayPhilStat(n, EAT_SIG);</action>
+        <choice_glyph conn="19,21,5,-1,10">
+         <action box="1,0,10,2"/>
+        </choice_glyph>
+       </choice>
+       <choice>
+        <guard>else</guard>
+        <action brief="Hungry">me-&gt;isHungry[n] = 1U;</action>
+        <choice_glyph conn="19,21,4,-1,5,10">
+         <action box="1,5,14,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="4,21,3,-1,15">
+        <action box="0,-2,8,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="DONE">
+       <action>uint8_t n, m;
+QMActive *philo;
+
+n = (uint8_t)(Q_PAR(me) - PHILO_0_PRIO);
+/* phil ID must be in range and he must be not hungry */
+Q_ASSERT((n &lt; N_PHILO) &amp;&amp; (me-&gt;isHungry[n] == 0U));
+
+BSP_displayPhilStat(n, THINKING_SIG);
+m = LEFT(n);
+/* both forks of Phil[n] must be used */
+Q_ASSERT((me-&gt;fork[n] == USED) &amp;&amp; (me-&gt;fork[m] == USED));
+
+me-&gt;fork[m] = FREE;
+me-&gt;fork[n] = FREE;
+m = RIGHT(n); /* check the right neighbor */
+
+if ((me-&gt;isHungry[m] != 0U) &amp;&amp; (me-&gt;fork[m] == FREE)) {
+    me-&gt;fork[n] = USED;
+    me-&gt;fork[m] = USED;
+    me-&gt;isHungry[m] = 0U;
+    philo = QF_ACTIVE_CAST(Q_ROM_PTR(QF_active[PHILO_0_PRIO + m].act));
+    QACTIVE_POST(philo, EAT_SIG, m);
+    BSP_displayPhilStat(m, EAT_SIG);
+}
+m = LEFT(n); /* check the left neighbor */
+n = LEFT(m); /* left fork of the left neighbor */
+if ((me-&gt;isHungry[m] != 0U) &amp;&amp; (me-&gt;fork[n] == FREE)) {
+    me-&gt;fork[m] = USED;
+    me-&gt;fork[n] = USED;
+    me-&gt;isHungry[m] = 0U;
+    philo = QF_ACTIVE_CAST(Q_ROM_PTR(QF_active[PHILO_0_PRIO + m].act));
+    QACTIVE_POST(philo, EAT_SIG, m);
+    BSP_displayPhilStat(m, EAT_SIG);
+}</action>
+       <tran_glyph conn="4,29,3,-1,15">
+        <action box="0,-2,6,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="EAT">
+       <action brief="Q_ERROR">Q_ERROR();</action>
+       <tran_glyph conn="4,32,3,-1,15">
+        <action box="0,-2,14,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="PAUSE" target="../../2">
+       <tran_glyph conn="4,36,3,1,36,6,-2">
+        <action box="0,-2,7,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="4,14,34,24">
+       <entry box="1,2,27,2"/>
+      </state_glyph>
+     </state>
+     <state name="paused">
+      <entry>BSP_displayPaused(1U);</entry>
+      <exit>BSP_displayPaused(0U);</exit>
+      <tran trig="SERVE" target="../../1">
+       <tran_glyph conn="4,52,3,1,38,-20,-4">
+        <action box="0,-2,7,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="HUNGRY">
+       <action>uint8_t n = (uint8_t)(Q_PAR(me) - PHILO_0_PRIO);
+/* philo ID must be in range and he must be not hungry */
+Q_ASSERT((n &lt; N_PHILO) &amp;&amp; (me-&gt;isHungry[n] == 0U));
+me-&gt;isHungry[n] = 1U;
+BSP_displayPhilStat(n, HUNGRY_SIG);</action>
+       <tran_glyph conn="4,55,3,-1,15">
+        <action box="0,-2,8,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="DONE">
+       <action>uint8_t n, m;
+
+n = (uint8_t)(Q_PAR(me) - PHILO_0_PRIO);
+/* phil ID must be in range and he must be not hungry */
+Q_ASSERT((n &lt; N_PHILO) &amp;&amp; (me-&gt;isHungry[n] == 0U));
+
+BSP_displayPhilStat(n, THINKING_SIG);
+m = LEFT(n);
+/* both forks of Phil[n] must be used */
+Q_ASSERT((me-&gt;fork[n] == USED) &amp;&amp; (me-&gt;fork[m] == USED));
+
+me-&gt;fork[m] = FREE;
+me-&gt;fork[n] = FREE;</action>
+       <tran_glyph conn="4,58,3,-1,15">
+        <action box="0,-2,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="4,40,34,20">
+       <entry box="1,2,18,4"/>
+       <exit box="1,6,18,4"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="2,6,42,56"/>
+    </state>
+    <state_diagram size="58,66"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name=".">
+  <file name="main.c">
+   <text>#include &quot;qpn.h&quot;      // QP-nano framework
+#include &quot;philo.h&quot;
+#include &quot;table.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;console.h&quot;
+
+//Q_DEFINE_THIS_MODULE(&quot;dpp&quot;)
+
+//============================================================================
+//...
+
+// define all AO instances and event queue buffers for them...
+static QEvt l_philoQueue[N_PHILO][N_PHILO];
+static QEvt l_tableQueue[2];
+//...
+
+//============================================================================
+// QF_active[] array defines all active object control blocks ----------------
+QActiveCB const Q_ROM QF_active[] = {
+    { (QActive *)0,            (QEvt *)0,        0U                      },
+    { (QActive *)&amp;AO_Philo[0], l_philoQueue[0],  Q_DIM(l_philoQueue[0])  },
+    { (QActive *)&amp;AO_Philo[1], l_philoQueue[1],  Q_DIM(l_philoQueue[1])  },
+    { (QActive *)&amp;AO_Philo[2], l_philoQueue[2],  Q_DIM(l_philoQueue[2])  },
+    { (QActive *)&amp;AO_Philo[3], l_philoQueue[3],  Q_DIM(l_philoQueue[3])  },
+    { (QActive *)&amp;AO_Philo[4], l_philoQueue[4],  Q_DIM(l_philoQueue[4])  },
+    { (QActive *)&amp;AO_Table,    l_tableQueue,     Q_DIM(l_tableQueue)     }
+};
+
+//............................................................................
+//............................................................................
+void setup() {
+    // initialize the QF-nano framework
+    consoleInit();
+    QF_init(Q_DIM(QF_active));
+
+    // initialize all AOs...
+    QActive_ctor(&amp;AO_Philo[0].super, Q_STATE_CAST(&amp;Philo_initial));
+    QActive_ctor(&amp;AO_Philo[1].super, Q_STATE_CAST(&amp;Philo_initial));
+    QActive_ctor(&amp;AO_Philo[2].super, Q_STATE_CAST(&amp;Philo_initial));
+    QActive_ctor(&amp;AO_Philo[3].super, Q_STATE_CAST(&amp;Philo_initial));
+    QActive_ctor(&amp;AO_Philo[4].super, Q_STATE_CAST(&amp;Philo_initial));
+    QActive_ctor(&amp;AO_Table.super,    Q_STATE_CAST(&amp;Table_initial));
+
+    BSP_initSetup();
+
+    DEBUG_ARGS(&quot;QP-nano: %s &quot;, QP_VERSION_STR);
+}
+
+//............................................................................
+void loop() {
+    QF_run(); // run the QP-nano application
+}
+
+//============================================================================
+//============================================================================
+// QF callbacks...
+void QF_onStartup(void) {
+    BSP_initTick();
+}
+//............................................................................
+Q_NORETURN Q_onAssert(char const Q_ROM * const module, int location) {
+    // implement the error-handling policy for your application!!!
+    //Serial.print(F(&quot;ASSERTION:&quot;));
+    //Serial.print(module);
+    //Serial.print(location, DEC);
+    DEBUG_ARGS(&quot;ASSERTION %s %d&quot;, module, location);
+    for (uint32_t volatile i = 100000U; i &gt; 0U; --i) {
+    }
+    QF_INT_DISABLE(); // disable all interrupts
+    QF_RESET();  // reset the CPU
+    for (;;) {
+    }
+}
+
+
+//...
+</text>
+  </file>
+  <file name="philo.h">
+   <text>#ifndef PHILO_HPP
+#define PHILO_HPP
+
+//============================================================================
+enum DPPSignals_e {
+    EAT_SIG = Q_USER_SIG, // posted by Table to let a philosopher eat
+    DONE_SIG,             // posted by Philosopher when done eating
+    PAUSE_SIG,            // posted by BSP to pause the application
+    SERVE_SIG,            // posted by BSP to pause the application
+    HUNGRY_SIG,           // posted to Table from hungry Philo
+    THINKING_SIG,
+    MAX_SIG               // the last signal
+};
+
+enum PhiloCount_e {
+    N_PHILO = 5 // number of Philosophers
+};
+
+$declare${AOs::Philo}
+
+extern Philo AO_Philo[N_PHILO];
+
+#endif</text>
+  </file>
+  <file name="bsp.h">
+   <text>#ifndef BSP_HPP
+#define BSP_HPP
+
+//============================================================================
+// Board Support Package
+
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
+// various other constants for the application...
+enum BSP_e {
+    BSP_TICKS_PER_SEC = 100, // number of system clock ticks in one second
+    LED_L             = 13,  // the pin number of the on-board LED (L)
+    PHILO_0_PRIO      = 1,   // priority of the first Philo AO
+    THINK_TIME        = 3*BSP_TICKS_PER_SEC, // time for thinking
+    EAT_TIME          = 2*BSP_TICKS_PER_SEC  // time for eating
+};
+
+//#define SHOW_DEBUG
+
+#ifdef SHOW_DEBUG
+#define DEBUG(a) consoleDisplay(a)
+#define DEBUG_ARGS(format, ...) consoleDisplayArgs(format, ##__VA_ARGS__)
+#else
+#define DEBUG(a)
+#define DEBUG_ARGS(format, ...)
+#endif
+
+void BSP_initTick();
+void BSP_initSetup(void);
+void BSP_displayPaused(uint8_t paused);
+void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal);
+
+Q_DEFINE_THIS_MODULE(&quot;dpp&quot;)
+
+#endif // BSP_HPP</text>
+  </file>
+  <file name="bsp.c">
+   <text>#include &quot;qpn.h&quot;      // QP-nano framework
+#include &quot;Arduino.h&quot;  // Main include file for the Arduino SDK
+#include &quot;philo.h&quot;
+#include &quot;table.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;console.h&quot;
+
+//============================================================================
+// Board Support Package
+
+//uint16_t s_updateCount = 0;
+//const uint16_t kUpdateCount = 10;
+
+void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
+    Philo* AO_Ptr = &amp;AO_Philo[n];
+    uint8_t ledPin = AO_Ptr-&gt;m_ledPin;
+    uint32_t timeNow = millis();
+    uint32_t elapsedTime;
+
+    char_t const *stat = &quot;unknown&quot;;
+
+    if (dppSignal == EAT_SIG) {
+        stat = &quot;eating&quot;;
+
+        if ( AO_Ptr-&gt;m_pwmEnabled )
+            analogWrite(ledPin, 255);
+        else
+            digitalWrite(ledPin, HIGH);
+    }
+    else if (dppSignal == HUNGRY_SIG) {
+        stat = &quot;hungry&quot;;
+    }
+    else if (dppSignal == THINKING_SIG) {
+        stat = &quot;thinking&quot;;
+
+        if ( AO_Ptr-&gt;m_pwmEnabled )
+            analogWrite(ledPin, 5);
+        else
+            digitalWrite(ledPin, LOW);
+    }
+    else {
+#if 0
+        if ( AO_Ptr-&gt;m_pwmEnabled )
+            analogWrite(ledPin, 0);
+        else
+            digitalWrite(ledPin, LOW);
+#endif
+    }
+
+    elapsedTime = timeNow - AO_Ptr-&gt;m_elapsedTime;
+    AO_Ptr-&gt;m_elapsedTime = timeNow;
+    DEBUG_ARGS(&quot;Table: philosopher %d %s %lu&quot;, n, stat, elapsedTime);
+}
+//............................................................................
+void BSP_displayPaused(uint8_t paused) {
+    const char* msg = (paused) ? &quot;Paused ON&quot;: &quot;Paused OFF&quot;;
+    DEBUG_ARGS(&quot;Table: %s&quot;, msg);
+}
+
+//............................................................................
+void QV_onIdle(void) {   // called with interrupts DISABLED
+    // Put the CPU and peripherals to the low-power mode. You might
+    // need to customize the clock management for your application,
+    // see the datasheet for your particular AVR MCU.
+    SMCR = (0 &lt;&lt; SM0) | (1 &lt;&lt; SE); // idle mode, adjust to your project
+    QV_CPU_SLEEP();  // atomically go to sleep and enable interrupts
+}
+/*****************************************************************//**
+* ISR TIMER2 COMPA
+*********************************************************************/
+//static uint8_t s_timerCount = 0;
+
+#if 0
+ISR(TIMER2_COMPA_vect) {
+    if ( s_timerCount++ &gt; TIMER_SCALAR ) {
+        s_timerCount = 0;
+        QF_tickXISR(0); // process time events for tick rate 0
+    }
+};
+#endif
+
+// interrupts
+ISR(TIMER2_COMPA_vect) {
+    QF_tickXISR(0); // process time events for tick rate 0
+#if 0
+    if (Serial.available() &gt; 0) {
+        switch (Serial.read()) { // read the incoming byte
+            case 'p':
+            case 'P':
+                QACTIVE_POST_ISR(&amp;AO_Table, PAUSE_SIG, 0U);
+                break;
+            case 's':
+            case 'S':
+                QACTIVE_POST_ISR(&amp;AO_Table, SERVE_SIG, 0U);
+                break;
+        }
+    }
+#endif
+}
+
+
+/*****************************************************************//**
+* BSP_initTick()
+*********************************************************************/
+void BSP_initTick(void) {
+    // set Timer2 in CTC mode, 1/1024 prescaler, start the timer ticking...
+    TCCR2A = (1U &lt;&lt; WGM21) | (0U &lt;&lt; WGM20);
+    TCCR2B = (1U &lt;&lt; CS22 ) | (1U &lt;&lt; CS21) | (1U &lt;&lt; CS20); // 1/2^10
+    ASSR  &amp;= ~(1U &lt;&lt; AS2);
+    TIMSK2 = (1U &lt;&lt; OCIE2A); // enable TIMER2 compare Interrupt
+    TCNT2  = 0U;
+
+    // set the output-compare register based on the desired tick frequency, 1Khz
+    OCR2A  = (F_CPU / BSP_TICKS_PER_SEC / 1024U) - 1U;
+};
+
+void BSP_initSetup(void)
+{
+    // initialize the hardware used in this sketch...
+    uint8_t ledPin = 8;
+
+    for (uint8_t i = 0; i &lt; ARRAY_SIZE(AO_Philo); i++ )
+    {
+        Philo* AO_Ptr = &amp;AO_Philo[i];
+        uint8_t theLedPin = ledPin+i;
+        AO_Ptr-&gt;m_ledPin = theLedPin;
+        //AO_Ptr-&gt;m_pwmEnabled = ( theLedPin &gt;= 9 &amp;&amp; theLedPin &lt;= 11 ) ? 1 : 0;
+        //PWM mode not working reliably so disable.
+        AO_Ptr-&gt;m_pwmEnabled = 0;
+        AO_Ptr-&gt;m_elapsedTime = millis();
+        AO_Ptr-&gt;m_id = i;
+
+        pinMode(ledPin+i, OUTPUT); // set the LED pin to output
+
+        if (AO_Ptr-&gt;m_pwmEnabled)
+            analogWrite(theLedPin, 0);
+        else
+            digitalWrite(theLedPin, LOW);
+    }
+}
+</text>
+  </file>
+  <file name="table.h">
+   <text>#ifndef TABLE_HPP
+#define TABLE_HPP
+#include &quot;qpn.h&quot;      // QP-nano framework
+#include &quot;philo.h&quot;
+
+$declare${AOs::Table}
+
+extern Table AO_Table;
+
+#endif</text>
+  </file>
+  <file name="table.c">
+   <text>#include &quot;qpn.h&quot;      // QP-nano framework
+#include &quot;table.h&quot;
+#include &quot;bsp.h&quot;
+
+Table AO_Table;
+
+static inline uint8_t RIGHT(uint8_t n) {
+    return (n + (N_PHILO - 1)) % N_PHILO;
+}
+static inline uint8_t LEFT(uint8_t n) {
+    return (n + 1) % N_PHILO;
+}
+enum Fork_e {
+    FREE = 0,
+    USED = 1
+};
+
+$define${AOs::Table}
+</text>
+  </file>
+  <file name="philo.c">
+   <text>#include &quot;qpn.h&quot;      // QP-nano framework
+#include &quot;philo.h&quot;
+#include &quot;table.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;console.h&quot;
+
+//============================================================================
+// define all AO classes...
+
+Philo AO_Philo[N_PHILO];
+
+$define${AOs::Philo}
+</text>
+  </file>
+ </directory>
+</model>
