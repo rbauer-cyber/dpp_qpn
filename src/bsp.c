@@ -47,10 +47,10 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
     uint32_t timeNow = millis();
     uint32_t elapsedTime;
 
-    char_t const *stat = "unknown";
+    DECLARE_AND_INIT(char_t*, stat, "unknown");
 
     if (dppSignal == EAT_SIG) {
-        stat = "eating";
+        STRING_PTR_ASSIGN(stat, "eating");
 
         if ( AO_Ptr->m_pwmEnabled )
             analogWrite(ledPin, 255);
@@ -58,10 +58,10 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
             digitalWrite(ledPin, HIGH);
     }
     else if (dppSignal == HUNGRY_SIG) {
-        stat = "hungry";
+        STRING_PTR_ASSIGN(stat, "hungry");
     }
     else if (dppSignal == THINKING_SIG) {
-        stat = "thinking";
+        STRING_PTR_ASSIGN(stat, "thinking");
 
         if ( AO_Ptr->m_pwmEnabled )
             analogWrite(ledPin, 5);

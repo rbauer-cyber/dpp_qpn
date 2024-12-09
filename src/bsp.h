@@ -50,9 +50,15 @@ enum BSP_e {
 #ifdef SHOW_DEBUG
 #define DEBUG(a) consoleDisplay(a)
 #define DEBUG_ARGS(format, ...) consoleDisplayArgs(format, ##__VA_ARGS__)
+#define DEBUG_STR_DEF(name,val) char_t const *name
+#define DECLARE_AND_INIT(type, name, value) type name = value
+#define STRING_PTR_ASSIGN(ptr, str) ptr = str
 #else
 #define DEBUG(a)
 #define DEBUG_ARGS(format, ...)
+#define DEBUG_STR_DEF(name,val)
+#define DECLARE_AND_INIT(type, name, value)
+#define STRING_PTR_ASSIGN(ptr, str)
 #endif
 
 void BSP_initTick();

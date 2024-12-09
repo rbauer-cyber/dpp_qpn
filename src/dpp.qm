@@ -357,43 +357,6 @@ extern Philo AO_Philo[N_PHILO];
 
 #endif</text>
   </file>
-  <file name="bsp.h">
-   <text>#ifndef BSP_HPP
-#define BSP_HPP
-
-//============================================================================
-// Board Support Package
-
-#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
-
-// various other constants for the application...
-enum BSP_e {
-    BSP_TICKS_PER_SEC = 100, // number of system clock ticks in one second
-    LED_L             = 13,  // the pin number of the on-board LED (L)
-    PHILO_0_PRIO      = 1,   // priority of the first Philo AO
-    THINK_TIME        = 3*BSP_TICKS_PER_SEC, // time for thinking
-    EAT_TIME          = 2*BSP_TICKS_PER_SEC  // time for eating
-};
-
-//#define SHOW_DEBUG
-
-#ifdef SHOW_DEBUG
-#define DEBUG(a) consoleDisplay(a)
-#define DEBUG_ARGS(format, ...) consoleDisplayArgs(format, ##__VA_ARGS__)
-#else
-#define DEBUG(a)
-#define DEBUG_ARGS(format, ...)
-#endif
-
-void BSP_initTick();
-void BSP_initSetup(void);
-void BSP_displayPaused(uint8_t paused);
-void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal);
-
-Q_DEFINE_THIS_MODULE(&quot;dpp&quot;)
-
-#endif // BSP_HPP</text>
-  </file>
   <file name="bsp.c">
    <text>#include &quot;qpn.h&quot;      // QP-nano framework
 #include &quot;Arduino.h&quot;  // Main include file for the Arduino SDK
@@ -414,10 +377,10 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
     uint32_t timeNow = millis();
     uint32_t elapsedTime;
 
-    char_t const *stat = &quot;unknown&quot;;
+    DECLARE_AND_INIT(char_t*, stat, &quot;unknown&quot;);
 
     if (dppSignal == EAT_SIG) {
-        stat = &quot;eating&quot;;
+        STRING_PTR_ASSIGN(stat, &quot;eating&quot;);
 
         if ( AO_Ptr-&gt;m_pwmEnabled )
             analogWrite(ledPin, 255);
@@ -425,10 +388,10 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
             digitalWrite(ledPin, HIGH);
     }
     else if (dppSignal == HUNGRY_SIG) {
-        stat = &quot;hungry&quot;;
+        STRING_PTR_ASSIGN(stat, &quot;hungry&quot;);
     }
     else if (dppSignal == THINKING_SIG) {
-        stat = &quot;thinking&quot;;
+        STRING_PTR_ASSIGN(stat, &quot;thinking&quot;);
 
         if ( AO_Ptr-&gt;m_pwmEnabled )
             analogWrite(ledPin, 5);
@@ -536,6 +499,49 @@ void BSP_initSetup(void)
     }
 }
 </text>
+  </file>
+  <file name="bsp.h">
+   <text>#ifndef BSP_HPP
+#define BSP_HPP
+
+//============================================================================
+// Board Support Package
+
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
+// various other constants for the application...
+enum BSP_e {
+    BSP_TICKS_PER_SEC = 100, // number of system clock ticks in one second
+    LED_L             = 13,  // the pin number of the on-board LED (L)
+    PHILO_0_PRIO      = 1,   // priority of the first Philo AO
+    THINK_TIME        = 3*BSP_TICKS_PER_SEC, // time for thinking
+    EAT_TIME          = 2*BSP_TICKS_PER_SEC  // time for eating
+};
+
+//#define SHOW_DEBUG
+
+#ifdef SHOW_DEBUG
+#define DEBUG(a) consoleDisplay(a)
+#define DEBUG_ARGS(format, ...) consoleDisplayArgs(format, ##__VA_ARGS__)
+#define DEBUG_STR_DEF(name,val) char_t const *name
+#define DECLARE_AND_INIT(type, name, value) type name = value
+#define STRING_PTR_ASSIGN(ptr, str) ptr = str
+#else
+#define DEBUG(a)
+#define DEBUG_ARGS(format, ...)
+#define DEBUG_STR_DEF(name,val)
+#define DECLARE_AND_INIT(type, name, value)
+#define STRING_PTR_ASSIGN(ptr, str)
+#endif
+
+void BSP_initTick();
+void BSP_initSetup(void);
+void BSP_displayPaused(uint8_t paused);
+void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal);
+
+Q_DEFINE_THIS_MODULE(&quot;dpp&quot;)
+
+#endif // BSP_HPP</text>
   </file>
   <file name="table.h">
    <text>#ifndef TABLE_HPP
