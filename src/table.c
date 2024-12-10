@@ -57,21 +57,22 @@ enum Fork_e {
 /*${AOs::Table} ............................................................*/
 
 /*${AOs::Table::SM} ........................................................*/
-QState Table_initial(Table * const me) {
-    /*${AOs::Table::SM::initial} */
-    uint8_t n;
-    for (n = 0U; n < N_PHILO; ++n) {
-        me->fork[n] = FREE;
-        me->isHungry[n] = 0U;
-        BSP_displayPhilStat(n, THINKING_SIG);
-    }
-    return Q_TRAN(&Table_serving);
-}
 
 /*${AOs::Table::SM::active} ................................................*/
 QState Table_active(Table * const me) {
     QState status_;
     switch (Q_SIG(me)) {
+        /*${AOs::Table::SM::active::initial} */
+        case Q_INIT_SIG: {
+            uint8_t n;
+            for (n = 0U; n < N_PHILO; ++n) {
+                me->fork[n] = FREE;
+                me->isHungry[n] = 0U;
+                BSP_displayPhilStat(n, THINKING_SIG);
+            }
+            status_ = Q_TRAN(&Table_serving);
+            break;
+        }
         /*${AOs::Table::SM::active::EAT} */
         case EAT_SIG: {
             Q_ERROR();
@@ -93,7 +94,8 @@ QState Table_serving(Table * const me) {
         /*${AOs::Table::SM::active::serving} */
         case Q_ENTRY_SIG: {
             uint8_t n;
-            for (n = 0U; n < N_PHILO; ++n) { /* give permissions to eat... */
+            for (n = 0U; n < N_PHILO; ++n) {
+                /* give permissions to eat... */
                 if ((me->isHungry[n] != 0U)
                     && (me->fork[LEFT(n)] == FREE)
                     && (me->fork[n] == FREE))
