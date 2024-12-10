@@ -16,7 +16,7 @@
    <statechart properties="0x01">
     <initial target="../1">
      <action>DEBUG_ARGS(&quot;Philospher %d starting&quot;, me-&gt;m_id);</action>
-     <initial_glyph conn="2,3,5,1,20,5,-4">
+     <initial_glyph conn="30,8,5,1,-12">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -25,7 +25,7 @@
 QActive_armX(&amp;me-&gt;super, 0U, THINK_TIME, 0U);</entry>
      <exit>QActive_disarmX(&amp;me-&gt;super, 0U);</exit>
      <tran trig="Q_TIMEOUT" target="../../2">
-      <tran_glyph conn="2,14,3,1,20,11,-4">
+      <tran_glyph conn="2,14,3,1,26,13,-10">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
@@ -44,13 +44,13 @@ QActive_armX(&amp;me-&gt;super, 0U, THINK_TIME, 0U);</entry>
      <entry>DEBUG_ARGS(&quot;Philospher %d hungry&quot;, me-&gt;m_id);
 QACTIVE_POST(&amp;AO_Table, HUNGRY_SIG, me-&gt;super.prio);</entry>
      <tran trig="EAT" target="../../3">
-      <tran_glyph conn="2,32,3,1,20,11,-4">
+      <tran_glyph conn="2,32,3,1,25,14,-9">
        <action box="0,-2,14,2"/>
       </tran_glyph>
      </tran>
      <tran trig="DONE">
       <action>Q_ERROR(); /* this event should never arrive in this state */</action>
-      <tran_glyph conn="2,36,3,-1,14">
+      <tran_glyph conn="2,36,3,-1,11">
        <action box="0,-2,14,2"/>
       </tran_glyph>
      </tran>
@@ -64,13 +64,13 @@ QActive_armX(&amp;me-&gt;super, 0U, EAT_TIME, 0U);</entry>
      <exit>QActive_disarmX(&amp;me-&gt;super, 0U);
 QACTIVE_POST(QF_ACTIVE_CAST(&amp;AO_Table), DONE_SIG, me-&gt;super.prio);</exit>
      <tran trig="Q_TIMEOUT" target="../../1">
-      <tran_glyph conn="2,51,3,1,22,-41,-6">
+      <tran_glyph conn="2,51,3,1,30,-40,-14">
        <action box="0,-2,10,3"/>
       </tran_glyph>
      </tran>
      <tran trig="EAT, DONE">
       <action>Q_ERROR(); /* these events should never arrive in this state */</action>
-      <tran_glyph conn="2,55,3,-1,13">
+      <tran_glyph conn="2,55,3,-1,12">
        <action box="0,-2,14,2"/>
       </tran_glyph>
      </tran>
@@ -79,34 +79,35 @@ QACTIVE_POST(QF_ACTIVE_CAST(&amp;AO_Table), DONE_SIG, me-&gt;super.prio);</exit>
       <exit box="1,4,5,2"/>
      </state_glyph>
     </state>
-    <state_diagram size="28,62"/>
+    <state_diagram size="40,62"/>
    </statechart>
   </class>
   <class name="Table" superclass="qpn::QActive">
    <attribute name="fork[N_PHILO]" type="uint8_t" visibility="0x02" properties="0x00"/>
    <attribute name="isHungry[N_PHILO]" type="uint8_t" visibility="0x02" properties="0x00"/>
    <statechart properties="0x01">
-    <initial target="../1/1">
-     <action>uint8_t n;
+    <state name="active">
+     <initial target="../2">
+      <action>uint8_t n;
 for (n = 0U; n &lt; N_PHILO; ++n) {
     me-&gt;fork[n] = FREE;
     me-&gt;isHungry[n] = 0U;
     BSP_displayPhilStat(n, THINKING_SIG);
 }</action>
-     <initial_glyph conn="4,4,5,1,42,12,-8">
-      <action box="0,-2,6,2"/>
-     </initial_glyph>
-    </initial>
-    <state name="active">
+      <initial_glyph conn="50,15,5,1,-12">
+       <action box="0,-2,6,2"/>
+      </initial_glyph>
+     </initial>
      <tran trig="EAT">
       <action brief="Q_ERROR">Q_ERROR();</action>
-      <tran_glyph conn="2,11,3,-1,14">
-       <action box="0,-2,14,3"/>
+      <tran_glyph conn="55,8,1,-1,-11">
+       <action box="-14,-2,14,3"/>
       </tran_glyph>
      </tran>
      <state name="serving">
       <entry brief="give pending permitions to eat">uint8_t n;
-for (n = 0U; n &lt; N_PHILO; ++n) { /* give permissions to eat... */
+for (n = 0U; n &lt; N_PHILO; ++n) {
+    /* give permissions to eat... */
     if ((me-&gt;isHungry[n] != 0U)
         &amp;&amp; (me-&gt;fork[LEFT(n)] == FREE)
         &amp;&amp; (me-&gt;fork[n] == FREE))
@@ -136,18 +137,18 @@ m = LEFT(n);</action>
 me-&gt;fork[n] = USED;
 QACTIVE_POST(&amp;AO_Philo[n], EAT_SIG, n);
 BSP_displayPhilStat(n, EAT_SIG);</action>
-        <choice_glyph conn="19,21,5,-1,10">
+        <choice_glyph conn="19,16,5,-1,10">
          <action box="1,0,10,2"/>
         </choice_glyph>
        </choice>
        <choice>
         <guard>else</guard>
         <action brief="Hungry">me-&gt;isHungry[n] = 1U;</action>
-        <choice_glyph conn="19,21,4,-1,5,10">
+        <choice_glyph conn="19,16,4,-1,5,10">
          <action box="1,5,14,2"/>
         </choice_glyph>
        </choice>
-       <tran_glyph conn="4,21,3,-1,15">
+       <tran_glyph conn="4,16,3,-1,15">
         <action box="0,-2,8,2"/>
        </tran_glyph>
       </tran>
@@ -186,30 +187,30 @@ if ((me-&gt;isHungry[m] != 0U) &amp;&amp; (me-&gt;fork[n] == FREE)) {
     QACTIVE_POST(philo, EAT_SIG, m);
     BSP_displayPhilStat(m, EAT_SIG);
 }</action>
-       <tran_glyph conn="4,29,3,-1,15">
+       <tran_glyph conn="4,26,3,-1,15">
         <action box="0,-2,6,2"/>
        </tran_glyph>
       </tran>
       <tran trig="EAT">
        <action brief="Q_ERROR">Q_ERROR();</action>
-       <tran_glyph conn="4,32,3,-1,15">
+       <tran_glyph conn="4,30,3,-1,15">
         <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
-      <tran trig="PAUSE" target="../../2">
-       <tran_glyph conn="4,36,3,1,36,6,-2">
+      <tran trig="PAUSE" target="../../3">
+       <tran_glyph conn="4,34,3,1,41,13,-7">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="4,14,34,24">
+      <state_glyph node="4,8,34,29">
        <entry box="1,2,27,2"/>
       </state_glyph>
      </state>
      <state name="paused">
       <entry>BSP_displayPaused(1U);</entry>
       <exit>BSP_displayPaused(0U);</exit>
-      <tran trig="SERVE" target="../../1">
-       <tran_glyph conn="4,52,3,1,38,-20,-4">
+      <tran trig="SERVE" target="../../2">
+       <tran_glyph conn="4,52,3,1,46,-23,-12">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
@@ -219,7 +220,7 @@ if ((me-&gt;isHungry[m] != 0U) &amp;&amp; (me-&gt;fork[n] == FREE)) {
 Q_ASSERT((n &lt; N_PHILO) &amp;&amp; (me-&gt;isHungry[n] == 0U));
 me-&gt;isHungry[n] = 1U;
 BSP_displayPhilStat(n, HUNGRY_SIG);</action>
-       <tran_glyph conn="4,55,3,-1,15">
+       <tran_glyph conn="4,56,3,-1,15">
         <action box="0,-2,8,2"/>
        </tran_glyph>
       </tran>
@@ -237,18 +238,18 @@ Q_ASSERT((me-&gt;fork[n] == USED) &amp;&amp; (me-&gt;fork[m] == USED));
 
 me-&gt;fork[m] = FREE;
 me-&gt;fork[n] = FREE;</action>
-       <tran_glyph conn="4,58,3,-1,15">
+       <tran_glyph conn="4,60,3,-1,15">
         <action box="0,-2,6,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="4,40,34,20">
+      <state_glyph node="4,39,34,25">
        <entry box="1,2,18,4"/>
        <exit box="1,6,18,4"/>
       </state_glyph>
      </state>
-     <state_glyph node="2,6,42,56"/>
+     <state_glyph node="2,3,53,63"/>
     </state>
-    <state_diagram size="58,66"/>
+    <state_diagram size="59,70"/>
    </statechart>
   </class>
  </package>
@@ -399,12 +400,7 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
             digitalWrite(ledPin, LOW);
     }
     else {
-#if 0
-        if ( AO_Ptr-&gt;m_pwmEnabled )
-            analogWrite(ledPin, 0);
-        else
-            digitalWrite(ledPin, LOW);
-#endif
+        STRING_PTR_ASSIGN(stat, &quot;unknown&quot;);
     }
 
     elapsedTime = timeNow - AO_Ptr-&gt;m_elapsedTime;
@@ -413,8 +409,9 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
 }
 //............................................................................
 void BSP_displayPaused(uint8_t paused) {
-    const char* msg = (paused) ? &quot;Paused ON&quot;: &quot;Paused OFF&quot;;
-    DEBUG_ARGS(&quot;Table: %s&quot;, msg);
+    DECLARE_AND_INIT(char_t*, pausedMsg, &quot;Paused OFF&quot;);
+    if ( paused ) STRING_PTR_ASSIGN(pausedMsg, &quot;Paused ON&quot;);
+    DEBUG_ARGS(&quot;Table: %s&quot;, pausedMsg);
 }
 
 //............................................................................
@@ -442,9 +439,9 @@ ISR(TIMER2_COMPA_vect) {
 // interrupts
 ISR(TIMER2_COMPA_vect) {
     QF_tickXISR(0); // process time events for tick rate 0
-#if 0
-    if (Serial.available() &gt; 0) {
-        switch (Serial.read()) { // read the incoming byte
+#if 1
+    if (consoleInputReady() &gt; 0) {
+        switch ( consoleReadByte() ) { // read the incoming byte
             case 'p':
             case 'P':
                 QACTIVE_POST_ISR(&amp;AO_Table, PAUSE_SIG, 0U);

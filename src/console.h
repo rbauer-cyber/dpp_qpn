@@ -14,9 +14,12 @@
     extern "C" {
 #endif
 
+void consoleInit();
 void consoleDisplayArgs(const char * format, ... );
 void consoleDisplay(const char* pMsg);
-void consoleInit();
+uint8_t consoleInputReady();
+uint8_t consoleReadByte();
+
 
 #ifdef __cplusplus
 }

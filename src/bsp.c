@@ -69,12 +69,7 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
             digitalWrite(ledPin, LOW);
     }
     else {
-#if 0
-        if ( AO_Ptr->m_pwmEnabled )
-            analogWrite(ledPin, 0);
-        else
-            digitalWrite(ledPin, LOW);
-#endif
+        STRING_PTR_ASSIGN(stat, "unknown");
     }
 
     elapsedTime = timeNow - AO_Ptr->m_elapsedTime;
@@ -83,8 +78,9 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
 }
 //............................................................................
 void BSP_displayPaused(uint8_t paused) {
-    const char* msg = (paused) ? "Paused ON": "Paused OFF";
-    DEBUG_ARGS("Table: %s", msg);
+    DECLARE_AND_INIT(char_t*, pausedMsg, "Paused OFF");
+    if ( paused ) STRING_PTR_ASSIGN(pausedMsg, "Paused ON");
+    DEBUG_ARGS("Table: %s", pausedMsg);
 }
 
 //............................................................................
@@ -112,9 +108,9 @@ ISR(TIMER2_COMPA_vect) {
 // interrupts
 ISR(TIMER2_COMPA_vect) {
     QF_tickXISR(0); // process time events for tick rate 0
-#if 0
-    if (Serial.available() > 0) {
-        switch (Serial.read()) { // read the incoming byte
+#if 1
+    if (consoleInputReady() > 0) {
+        switch ( consoleReadByte() ) { // read the incoming byte
             case 'p':
             case 'P':
                 QACTIVE_POST_ISR(&AO_Table, PAUSE_SIG, 0U);

@@ -13,7 +13,6 @@ void consoleInit()
 	Serial.begin(115200);
 }
 
-#if 1
 void consoleDisplayArgs(const char * format, ... )
 //void consoleDisplay(const char* pMsg)
 {
@@ -25,11 +24,18 @@ void consoleDisplayArgs(const char * format, ... )
 	va_end (args);
 	Serial.println(buffer);
 }
-#endif
 
 void consoleDisplay(const char* pMsg)
 {
 	Serial.println(pMsg);
 }
 
+uint8_t consoleInputReady()
+{
+    return( Serial.available() );
+}
 
+uint8_t consoleReadByte()
+{
+    return( Serial.read() );
+}
