@@ -32,7 +32,6 @@
 #include "philo.h"
 #include "table.h"
 #include "bsp.h"
-#include "console.h"
 
 //============================================================================
 // define all AO classes...

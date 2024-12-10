@@ -32,7 +32,6 @@
 #include "philo.h"
 #include "table.h"
 #include "bsp.h"
-#include "console.h"
 
 //Q_DEFINE_THIS_MODULE("dpp")
 

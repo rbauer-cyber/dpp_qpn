@@ -33,6 +33,9 @@
 
 //============================================================================
 // Board Support Package
+// console.h defines all routines for displaying console messages with arduino
+// uing the board USB connector to the computer.
+#include "console.h"
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
@@ -53,12 +56,14 @@ enum BSP_e {
 #define DEBUG_STR_DEF(name,val) char_t const *name
 #define DECLARE_AND_INIT(type, name, value) type name = value
 #define STRING_PTR_ASSIGN(ptr, str) ptr = str
+#define UNUSED(x)
 #else
 #define DEBUG(a)
 #define DEBUG_ARGS(format, ...)
 #define DEBUG_STR_DEF(name,val)
 #define DECLARE_AND_INIT(type, name, value)
 #define STRING_PTR_ASSIGN(ptr, str)
+#define UNUSED(x) ((void)x)
 #endif
 
 void BSP_initTick();

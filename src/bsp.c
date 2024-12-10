@@ -33,7 +33,6 @@
 #include "philo.h"
 #include "table.h"
 #include "bsp.h"
-#include "console.h"
 
 //============================================================================
 // Board Support Package
@@ -48,6 +47,7 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
     uint32_t elapsedTime;
 
     DECLARE_AND_INIT(char_t*, stat, "unknown");
+    UNUSED(elapsedTime);
 
     if (dppSignal == EAT_SIG) {
         STRING_PTR_ASSIGN(stat, "eating");

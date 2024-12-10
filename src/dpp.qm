@@ -86,22 +86,24 @@ QACTIVE_POST(QF_ACTIVE_CAST(&amp;AO_Table), DONE_SIG, me-&gt;super.prio);</exit>
    <attribute name="fork[N_PHILO]" type="uint8_t" visibility="0x02" properties="0x00"/>
    <attribute name="isHungry[N_PHILO]" type="uint8_t" visibility="0x02" properties="0x00"/>
    <statechart properties="0x01">
-    <state name="active">
-     <initial target="../2">
-      <action>uint8_t n;
+    <initial target="../1/1">
+     <action>DEBUG(&quot;Table starting&quot;);
+
+uint8_t n;
 for (n = 0U; n &lt; N_PHILO; ++n) {
     me-&gt;fork[n] = FREE;
     me-&gt;isHungry[n] = 0U;
     BSP_displayPhilStat(n, THINKING_SIG);
 }</action>
-      <initial_glyph conn="50,15,5,1,-12">
-       <action box="0,-2,6,2"/>
-      </initial_glyph>
-     </initial>
+     <initial_glyph conn="62,15,5,1,-24">
+      <action box="-5,-3,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="active">
      <tran trig="EAT">
       <action brief="Q_ERROR">Q_ERROR();</action>
-      <tran_glyph conn="55,8,1,-1,-11">
-       <action box="-14,-2,14,3"/>
+      <tran_glyph conn="55,10,1,-1,-11">
+       <action box="-14,-3,14,3"/>
       </tran_glyph>
      </tran>
      <state name="serving">
@@ -197,7 +199,7 @@ if ((me-&gt;isHungry[m] != 0U) &amp;&amp; (me-&gt;fork[n] == FREE)) {
         <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
-      <tran trig="PAUSE" target="../../3">
+      <tran trig="PAUSE" target="../../2">
        <tran_glyph conn="4,34,3,1,41,13,-7">
         <action box="0,-2,7,2"/>
        </tran_glyph>
@@ -209,7 +211,7 @@ if ((me-&gt;isHungry[m] != 0U) &amp;&amp; (me-&gt;fork[n] == FREE)) {
      <state name="paused">
       <entry>BSP_displayPaused(1U);</entry>
       <exit>BSP_displayPaused(0U);</exit>
-      <tran trig="SERVE" target="../../2">
+      <tran trig="SERVE" target="../../1">
        <tran_glyph conn="4,52,3,1,46,-23,-12">
         <action box="0,-2,7,2"/>
        </tran_glyph>
@@ -249,7 +251,7 @@ me-&gt;fork[n] = FREE;</action>
      </state>
      <state_glyph node="2,3,53,63"/>
     </state>
-    <state_diagram size="59,70"/>
+    <state_diagram size="71,70"/>
    </statechart>
   </class>
  </package>
@@ -259,7 +261,6 @@ me-&gt;fork[n] = FREE;</action>
 #include &quot;philo.h&quot;
 #include &quot;table.h&quot;
 #include &quot;bsp.h&quot;
-#include &quot;console.h&quot;
 
 //Q_DEFINE_THIS_MODULE(&quot;dpp&quot;)
 
@@ -364,7 +365,6 @@ extern Philo AO_Philo[N_PHILO];
 #include &quot;philo.h&quot;
 #include &quot;table.h&quot;
 #include &quot;bsp.h&quot;
-#include &quot;console.h&quot;
 
 //============================================================================
 // Board Support Package
@@ -379,6 +379,7 @@ void BSP_displayPhilStat(uint8_t n, uint8_t dppSignal) {
     uint32_t elapsedTime;
 
     DECLARE_AND_INIT(char_t*, stat, &quot;unknown&quot;);
+    UNUSED(elapsedTime);
 
     if (dppSignal == EAT_SIG) {
         STRING_PTR_ASSIGN(stat, &quot;eating&quot;);
@@ -503,6 +504,9 @@ void BSP_initSetup(void)
 
 //============================================================================
 // Board Support Package
+// console.h defines all routines for displaying console messages with arduino
+// uing the board USB connector to the computer.
+#include &quot;console.h&quot;
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
@@ -523,12 +527,14 @@ enum BSP_e {
 #define DEBUG_STR_DEF(name,val) char_t const *name
 #define DECLARE_AND_INIT(type, name, value) type name = value
 #define STRING_PTR_ASSIGN(ptr, str) ptr = str
+#define UNUSED(x)
 #else
 #define DEBUG(a)
 #define DEBUG_ARGS(format, ...)
 #define DEBUG_STR_DEF(name,val)
 #define DECLARE_AND_INIT(type, name, value)
 #define STRING_PTR_ASSIGN(ptr, str)
+#define UNUSED(x) ((void)x)
 #endif
 
 void BSP_initTick();
@@ -578,7 +584,6 @@ $define${AOs::Table}
 #include &quot;philo.h&quot;
 #include &quot;table.h&quot;
 #include &quot;bsp.h&quot;
-#include &quot;console.h&quot;
 
 //============================================================================
 // define all AO classes...
